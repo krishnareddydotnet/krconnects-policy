@@ -77,3 +77,34 @@ variable "memory_limit_max" {
   type        = string
   default     = "1Gi"
 }
+
+# ----- Azure resource policies (azure-resources.tf) -----
+
+variable "azure_resource_policy_effect" {
+  description = "Effect for the Azure resource policies that take an effect parameter (storage, Key Vault, SQL). Audit first, Deny later."
+  type        = string
+  default     = "Audit"
+
+  validation {
+    condition     = contains(["Audit", "Deny", "Disabled"], var.azure_resource_policy_effect)
+    error_message = "azure_resource_policy_effect must be Audit, Deny or Disabled."
+  }
+}
+
+variable "enforce_fixed_deny_policies" {
+  description = "Some built-ins have NO effect parameter (always Deny): allowed locations, required tag, no public IP on NICs. false = DoNotEnforce: evaluated and shown in Compliance, but nothing is blocked."
+  type        = bool
+  default     = false
+}
+
+variable "allowed_locations" {
+  description = "Azure regions where resources may be created. Global resources (e.g. Front Door) are always allowed by this built-in."
+  type        = list(string)
+  default     = ["centralindia", "southindia"]
+}
+
+variable "required_tag_name" {
+  description = "Tag every resource must have (one assignment per tag; add more blocks for more tags)."
+  type        = string
+  default     = "environment"
+}
