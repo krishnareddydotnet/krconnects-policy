@@ -25,3 +25,20 @@ output "cluster_policy_assignment_ids" {
     policy_addon_enabled = azurerm_resource_group_policy_assignment.policy_addon_enabled.id
   }
 }
+
+output "azure_resource_policy_assignment_ids" {
+  description = "Policy assignment IDs for the Azure resource policies (azure-resources.tf)."
+  value = {
+    allowed_locations       = azurerm_resource_group_policy_assignment.allowed_locations.id
+    require_tag             = azurerm_resource_group_policy_assignment.require_tag.id
+    nic_no_public_ip        = azurerm_resource_group_policy_assignment.nic_no_public_ip.id
+    subnet_nsg              = azurerm_resource_group_policy_assignment.subnet_nsg.id
+    storage_no_public_blob  = azurerm_resource_group_policy_assignment.storage_no_public_blob.id
+    storage_secure_transfer = azurerm_resource_group_policy_assignment.storage_secure_transfer.id
+    storage_min_tls         = azurerm_resource_group_policy_assignment.storage_min_tls.id
+    kv_purge_protection     = azurerm_resource_group_policy_assignment.kv_purge_protection.id
+    kv_rbac                 = azurerm_resource_group_policy_assignment.kv_rbac.id
+    sql_no_public_network   = azurerm_resource_group_policy_assignment.sql_no_public_network.id
+    sql_entra_only          = azurerm_resource_group_policy_assignment.sql_entra_only.id
+  }
+}

@@ -11,13 +11,16 @@ krconnects-policy/
 ├── definitions/                         CUSTOM policy definitions (company-specific rules only; empty for now)
 └── environments/                        one folder = one Terraform root = one state
     ├── practice/                        DEPLOYABLE: scope rg-krconnects-practice-cin-001
+    │   ├── main.tf                      AKS policies (#1-14)
+    │   └── azure-resources.tf           Azure resource policies (#15-25)
     ├── nonprod/                         placeholder: scope mg-nonprod, effect Audit
     └── prod/                            placeholder: scope mg-prod, effect Deny + manual approval
 ```
 
 ## Policy catalog (managed by Terraform)
 
-All are **built-in** definitions, assigned in `environments/practice/main.tf` at resource group scope.
+All are **built-in** definitions, assigned at resource group scope: AKS in `environments/practice/main.tf`,
+Azure resources in `environments/practice/azure-resources.tf`.
 
 ### A. Workload policies (pods/containers, enforced in AKS by Gatekeeper)
 
@@ -46,6 +49,45 @@ Policies 2-6 and 12 also skip the Istio sidecar containers `istio-init` and `ist
 |---|---|---|---|---|
 | 13 | Azure Kubernetes Service Clusters should have local authentication methods disabled | `993c2fcd-2b29-49d2-9eb0-df2c3a730c32` | Audit | Entra ID login only |
 | 14 | Azure Policy Add-on for Kubernetes service (AKS) should be installed and enabled on your clusters | `0a15ec92-a229-4763-bb14-0ea34a568f8d` | Audit | Without it, section A does nothing |
+
+### C. Azure resource policies (governance, network, storage, Key Vault, SQL)
+
+| # | Built-in policy | Definition ID | Practice effect | Why |
+|---|---|---|---|---|
+| 15 | Allowed locations | `e56962a6-4747-49cd-b67b-bf8b01975c4c` | Deny, **DoNotEnforce** | Only Central India / South India (global resources always allowed) |
+| 16 | Require a tag on resources (`environment`) | `871b6d14-10aa-478d-b590-94f262ecfa99` | Deny, **DoNotEnforce** | Cost reports and ownership |
+| 17 | Network interfaces should not have public IPs | `83a86a26-fd1f-447c-b59d-e51f44264114` | Deny, **DoNotEnforce** | No VM reachable from the internet |
+| 18 | Subnets should be associated with a Network Security Group | `e71308d3-144b-4262-b144-efdc3cc90517` | AuditIfNotExists | No subnet without firewall rules |
+| 19 | Storage account public access should be disallowed | `4fa4b6c0-31ca-4c0d-b10d-24b96f62a751` | Audit | No anonymous blob access |
+| 20 | Secure transfer to storage accounts should be enabled | `404c3081-a854-4457-ae30-26a93ef643f9` | Audit | HTTPS only |
+| 21 | Storage accounts should have the specified minimum TLS version | `fe83a0eb-a853-422d-aac2-1bffd182c5d0` | Audit | TLS 1.2 or newer |
+| 22 | Key vaults should have deletion protection enabled | `0b60c0b2-2dc2-4e1c-b5c9-abbed971de53` | Audit | Purge protection |
+| 23 | Azure Key Vault should use RBAC permission model | `12d4fa5e-1f9f-4c21-97a9-b99b3c6611b5` | Audit | Azure RBAC, not access policies |
+| 24 | Public network access on Azure SQL Database should be disabled | `1b8ca024-1d5c-4dec-8995-b1a932b41780` | Audit | Private endpoint only |
+| 25 | Azure SQL Database should have Microsoft Entra-only authentication enabled | `b3a22bc9-66de-45fb-98fa-00f5df42f41a` | Audit | No SQL logins/passwords |
+
+**DoNotEnforce** (`enforce = false`): #15-17 have no effect parameter (always Deny), so they are switched on with
+`enforce_fixed_deny_policies = true` once Compliance is clean. Until then they are evaluated and reported, but block nothing.
+The others move from Audit to Deny with `azure_resource_policy_effect = "Deny"`.
+
+### D. Other important Azure policies (interview list, not in code yet)
+
+| Area | Built-in policy | Usual effect |
+|---|---|---|
+| Governance | Allowed locations for resource groups | Deny (subscription scope) |
+| Governance | Not allowed resource types / Allowed virtual machine size SKUs | Deny |
+| Governance | Inherit a tag from the resource group if missing | Modify (needs managed identity) |
+| Network | Management ports should be closed on your virtual machines | AuditIfNotExists |
+| Network | Web Application Firewall (WAF) should be enabled for Application Gateway / Azure Front Door | Audit or Deny |
+| Storage | Storage accounts should disable public network access / should prevent shared key access | Audit or Deny |
+| Key Vault | Azure Key Vault should disable public network access / Key Vault secrets should have an expiration date | Audit or Deny |
+| SQL | Auditing on SQL server should be enabled / Transparent Data Encryption on SQL databases should be enabled | AuditIfNotExists or DeployIfNotExists |
+| Compute | Azure Backup should be enabled for Virtual Machines / VMs should enable disk encryption or EncryptionAtHost | AuditIfNotExists / Audit |
+| App Service | App Service apps should only be accessible over HTTPS / should use managed identity | Deny / Audit |
+| ACR | Container registries should have local admin account disabled | Deny |
+| Monitoring | Configure diagnostic settings to Log Analytics (per service) | DeployIfNotExists (needs managed identity + remediation) |
+| Defender | Microsoft Defender for Cloud plans should be enabled (Servers, Storage, SQL, Containers) | AuditIfNotExists (subscription scope) |
+| Baseline | **Microsoft cloud security benchmark** initiative (assigned by Defender for Cloud) | Audit |
 
 Considered but not assigned (yet): HTTPS-only ingress (we use an Istio Gateway, no Ingress objects), internal load balancers only
 (our Istio gateway is public), seccomp/AppArmor profiles, and the bundled *pod security restricted* initiative.

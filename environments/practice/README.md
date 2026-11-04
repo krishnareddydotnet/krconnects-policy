@@ -2,7 +2,9 @@
 
 ## What it deploys
 
-14 Azure Policy assignments (12 workload + 2 cluster) on resource group `rg-krconnects-practice-cin-001`.
+25 Azure Policy assignments on resource group `rg-krconnects-practice-cin-001`:
+- `main.tf`: 12 AKS workload + 2 AKS cluster policies
+- `azure-resources.tf`: 11 Azure resource policies (locations, tags, network, storage, Key Vault, SQL)
 Full list: root `README.md` (Policy catalog). No other Azure resources and no cost.
 
 ## Prerequisites
@@ -46,7 +48,12 @@ kubectl get constraints
 ```
 
 Each workload policy shows as a constraint with ENFORCEMENT-ACTION `deny` (or `dryrun` for Audit) and TOTAL-VIOLATIONS `0`.
-Portal: **Policy -> Compliance** (first scan can take ~30 minutes).
+Portal: **Policy -> Compliance** (first scan can take ~30 minutes). The Azure resource policies (#15-25) show only there,
+not in kubectl. Start a scan right away with:
+
+```powershell
+az policy state trigger-scan --resource-group rg-krconnects-practice-cin-001
+```
 
 ## Clean up
 
