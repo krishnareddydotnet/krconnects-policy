@@ -1,0 +1,37 @@
+name: terraform ci
+
+# MANUAL ONLY: runs when you click Actions -> terraform ci -> Run workflow. Never on push or pull_request.
+# Checks code quality only: no Azure login, no secrets, no plan, no apply.
+# (Companies add: plan on pull_request with OIDC login, apply on merge with a prod approval.)
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read # least privilege: only read the code
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: environments/practice
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.17.1
+
+      # Fails if any file is not formatted (fix locally with: terraform fmt -recursive)
+      - name: terraform fmt
+        run: terraform fmt -check -recursive
+
+      # -backend=false: download the provider only, no state and no Azure access needed
+      - name: terraform init
+        run: terraform init -backend=false
+
+      # Checks syntax, references and types (not whether Azure accepts the values)
+      - name: terraform validate
+        run: terraform validate
