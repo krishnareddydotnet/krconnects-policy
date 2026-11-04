@@ -42,3 +42,10 @@ terraform.rc
 # Optional: ignore plan files saved before destroying Terraform configuration
 # Uncomment the line below if you want to ignore planout files.
 # planout
+# Saved plan files (a plan can contain sensitive values)
+*.tfplan
+tfplan
+
+# Environment tfvars hold only NON-secret values (scope, effect, regex) and ARE committed.
+# Secrets never go in tfvars: policies need none.
+!environments/**/*.tfvars
